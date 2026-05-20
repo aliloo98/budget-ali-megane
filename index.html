@@ -282,8 +282,8 @@
           <div class="param-label">Importer une sauvegarde</div>
           <div style="font-size:12px;color:var(--text2);margin-top:4px">Charge un fichier JSON exporté précédemment</div>
         </div>
-        abel class="btn btn-outline" style="cursor:pointer">Importer<input type="file" accept=".json" style="display:none" onchange="importData(event)"></label>
-      </div>
+        <label class="btn btn-outline" style="cursor:pointer">Importer<input type="file" accept=".json" style="display:none" onchange="importData(event)"></label></label>
+      </div></label>
     </div>
     <div class="param-block">
       <div class="param-title">Données</div>
@@ -450,7 +450,7 @@ function buildHistory(){
   }).join('');
 }
 
-window.onload=()=>{loadMonth();buildHistory()};
+window.onload=()=>{loadMonth();buildHistory();showSection('dashboard')};
 </script>
 </body>
 </html>

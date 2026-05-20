@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Budget — Ali & Megane</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  :root{--bg:#0a0a0f;--bg2:#111118;--bg3:#1a1a24;--gold:#c9a84c;--gold2:#e8c96d;--text:#f0ede6;--text2:#9a9790;--green:#2ecc71;--red:#e74c3c;--orange:#f39c12;--border:#2a2a35}
+  body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',sans-serif;display:flex;min-height:100vh}
+  /* SIDEBAR */
+  .sidebar{width:72px;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;align-items:center;padding:24px 0;gap:8px;position:fixed;top:0;left:0;height:100vh;z-index:100}
+  .sidebar-logo{width:40px;height:40px;background:linear-gradient(135deg,var(--gold),var(--gold2));border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:18px;margin-bottom:16px}
+  .nav-btn{width:44px;height:44px;border-radius:12px;border:none;background:transparent;color:var(--text2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:20px;transition:all .2s;position:relative}
+  .nav-btn:hover,.nav-btn.active{background:var(--bg3);color:var(--gold)}
+  .nav-btn.active::before{content:'';position:absolute;left:-1px;top:50%;transform:translateY(-50%);width:3px;height:24px;background:var(--gold);border-radius:0 3px 3px 0}
+  .nav-btn[title]:hover::after{content:attr(title);position:absolute;left:56px;background:var(--bg3);color:var(--text);padding:6px 10px;border-radius:8px;font-size:12px;white-space:nowrap;border:1px solid var(--border);pointer-events:none}
+  /* MAIN */
+  .main{margin-left:72px;flex:1;padding:32px;max-width:1200px}
+  /* HEADER */
+  .header{display:flex;justify-content:space-between;align-items:center;margin-bottom:32px}
+  .header h1{font-size:24px;font-weight:600;letter-spacing:-.3px}
+  .header h1 span{color:var(--gold)}
+  .month-selector{display:flex;align-items:center;gap:12px;background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:8px 16px}
+  .month-selector select{background:transparent;border:none;color:var(--text);font-size:14px;cursor:pointer;outline:none}
+  /* KPI CARDS */
+  .kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-bottom:32px}
+  .kpi-card{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:20px;position:relative;overflow:hidden}
+  .kpi-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--gold),transparent)}
+  .kpi-label{font-size:11px;text-transform:uppercase;letter-spacing:.8px;color:var(--text2);margin-bottom:8px}
+  .kpi-value{font-size:26px;font-weight:700;letter-spacing:-.5px}
+  .kpi-value.positive{color:var(--green)}
+  .kpi-value.negative{color:var(--red)}
+  .kpi-value.warning{color:var(--orange)}
+  .kpi-sub{font-size:12px;color:var(--text2);margin-top:4px}
+  .kpi-icon{position:absolute;top:16px;right:16px;font-size:22px;opacity:.3}
+  /* SECTIONS */
+  .section{display:none}
+  .section.active{display:block}
+  /* BUDGET TABLE */
+  .budget-block{background:var(--bg2);border:1px solid var(--border);border-radius:16px;margin-bottom:24px;overflow:hidden}
+  .budget-block-header{padding:16px 24px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:var(--bg3)}
+  .budget-block-title{font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;color:var(--gold)}
+  .budget-block-total{font-size:15px;font-weight:700;color:var(--text)}
+  .budget-row{display:grid;grid-template-columns:1fr 160px 160px;align-items:center;padding:12px 24px;border-bottom:1px solid rgba(255,255,255,.03);transition:background .15s}
+  .budget-row:last-child{border-bottom:none}
+  .budget-row:hover{background:rgba(201,168,76,.04)}
+  .budget-row-label{font-size:14px;color:var(--text2)}
+  .budget-row-label.category{font-size:12px;text-transform:uppercase;letter-spacing:.6px;color:var(--text2);opacity:.6;padding:8px 24px;background:var(--bg3)}
+  .budget-input{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-size:14px;width:140px;text-align:right;transition:border-color .2s;outline:none}
+  .budget-input:focus{border-color:var(--gold)}
+  .budget-input-label{font-size:11px;color:var(--text2);text-align:right;margin-bottom:2px}
+  .col-header{font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.6px;text-align:right}
+  /* ALERT BADGE */
+  .alert-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-left:8px}
+  .alert-dot.green{background:var(--green)}
+  .alert-dot.red{background:var(--red)}
+  .alert-dot.orange{background:var(--orange)}
+  /* SAVE BAR */
+  .save-bar{position:fixed;bottom:24px;right:24px;display:flex;gap:12px;z-index:200}
+  .btn{padding:12px 24px;border-radius:12px;border:none;font-size:14px;font-weight:600;cursor:pointer;transition:all .2s}
+  .btn-gold{background:linear-gradient(135deg,var(--gold),var(--gold2));color:#000}
+  .btn-gold:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(201,168,76,.3)}
+  .btn-outline{background:transparent;border:1px solid var(--border);color:var(--text)}
+  .btn-outline:hover{border-color:var(--gold);color:var(--gold)}
+  .btn-danger{background:transparent;border:1px solid var(--red);color:var(--red)}
+  /* TOAST */
+  .toast{position:fixed;top:24px;right:24px;background:var(--bg3);border:1px solid var(--gold);color:var(--text);padding:14px 20px;border-radius:12px;font-size:14px;z-index:999;transform:translateX(120%);transition:transform .3s}
+  .toast.show{transform:translateX(0)}
+  /* HISTORIQUE */
+  .history-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px}
+  .history-card{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:20px;cursor:pointer;transition:all .2s}
+  .history-card:hover{border-color:var(--gold);transform:translateY(-2px)}
+  .history-month{font-size:16px;font-weight:600;margin-bottom:12px}
+  .history-stat{display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px}
+  .history-stat span:first-child{color:var(--text2)}
+  /* PARAMETRES */
+  .param-block{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:24px;margin-bottom:20px}
+  .param-title{font-size:14px;font-weight:600;color:var(--gold);margin-bottom:16px;text-transform:uppercase;letter-spacing:.6px}
+  .param-row{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--border)}
+  .param-row:last-child{border-bottom:none}
+  .param-label{font-size:14px;color:var(--text2)}
+  /* SCROLL */
+  ::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+  /* RESPONSIVE */
+  @media(max-width:768px){.main{padding:16px;margin-left:60px}.sidebar{width:60px}.budget-row{grid-template-columns:1fr 120px}.kpi-grid{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<nav class="sidebar">
+  <div class="sidebar-logo">💰</div>
+  <button class="nav-btn active" onclick="showSection('dashboard')" title="Tableau de bord">🏠</button>
+  <button class="nav-btn" onclick="showSection('saisie')" title="Saisie du mois">✏️</button>
+  <button class="nav-btn" onclick="showSection('historique')" title="Historique">📊</button>
+  <button class="nav-btn" onclick="showSection('parametres')" title="Paramètres">⚙️</button>
+</nav>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- MAIN CONTENT -->
+<main class="main">
+
+  <!-- HEADER -->
+  <div class="header">
+    <h1>Budget <span>Ali & Megane</span></h1>
+    <div class="month-selector">
+      <span style="color:var(--text2);font-size:13px">Mois</span>
+      <select id="monthSelect" onchange="loadMonth()">
+        <option value="2026-01">Janvier 2026</option>
+        <option value="2026-02">Février 2026</option>
+        <option value="2026-03">Mars 2026</option>
+        <option value="2026-04">Avril 2026</option>
+        <option value="2026-05" selected>Mai 2026</option>
+        <option value="2026-06">Juin 2026</option>
+        <option value="2026-07">Juillet 2026</option>
+        <option value="2026-08">Août 2026</option>
+        <option value="2026-09">Septembre 2026</option>
+        <option value="2026-10">Octobre 2026</option>
+        <option value="2026-11">Novembre 2026</option>
+        <option value="2026-12">Décembre 2026</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div id="section-dashboard" class="section active">
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-icon">💵</div>
+        <div class="kpi-label">Revenus totaux</div>
+        <div class="kpi-value" id="kpi-revenus">0 €</div>
+        <div class="kpi-sub">Ce mois</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon">📌</div>
+        <div class="kpi-label">Charges fixes</div>
+        <div class="kpi-value" id="kpi-fixes">0 €</div>
+        <div class="kpi-sub" id="kpi-fixes-pct">0% des revenus</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon">🛒</div>
+        <div class="kpi-label">Dépenses variables</div>
+        <div class="kpi-value" id="kpi-variables">0 €</div>
+        <div class="kpi-sub" id="kpi-variables-pct">0% des revenus</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon">💎</div>
+        <div class="kpi-label">Solde mensuel</div>
+        <div class="kpi-value" id="kpi-solde">0 €</div>
+        <div class="kpi-sub" id="kpi-solde-status">—</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon">📈</div>
+        <div class="kpi-label">Taux d'épargne</div>
+        <div class="kpi-value" id="kpi-epargne">0%</div>
+        <div class="kpi-sub">Objectif: 20%</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon">⚡</div>
+        <div class="kpi-label">Taux de charges</div>
+        <div class="kpi-value" id="kpi-taux">0%</div>
+        <div class="kpi-sub">Fixes + variables</div>
+      </div>
+    </div>
+
+    <!-- RESUME RAPIDE -->
+    <div class="budget-block">
+      <div class="budget-block-header">
+        <span class="budget-block-title">Résumé du mois</span>
+                <span style="font-size:13px;color:var(--text2)" id="dash-mois">Mai 2026</span>
+      </div>
+      <div style="padding:20px 24px">
+        <div class="budget-row" style="grid-template-columns:1fr 1fr;border-bottom:1px solid var(--border);padding-bottom:16px;margin-bottom:16px">
+          <div><div style="font-size:12px;color:var(--text2);margin-bottom:4px">Total Revenus</div><div style="font-size:20px;font-weight:700;color:var(--green)" id="dash-rev">0 €</div></div>
+          <div><div style="font-size:12px;color:var(--text2);margin-bottom:4px">Total Dépenses</div><div style="font-size:20px;font-weight:700;color:var(--red)" id="dash-dep">0 €</div></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:14px;color:var(--text2)">Solde disponible</span>
+          <span style="font-size:22px;font-weight:700" id="dash-solde2">0 €</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SAISIE -->
+  <div id="section-saisie" class="section">
+
+    <!-- REVENUS -->
+    <div class="budget-block">
+      <div class="budget-block-header">
+        <span class="budget-block-title">💵 Revenus</span>
+        <span class="budget-block-total" id="total-revenus">0 €</span>
+      </div>
+      <div class="budget-row" style="grid-template-columns:1fr 160px 160px"><div></div><div class="col-header">Prévu</div><div class="col-header">Réel</div></div>
+      <div style="padding:6px 24px 2px;font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--text2);opacity:.6;background:var(--bg3)">Revenus principaux</div>
+      <div class="budget-row"><div class="budget-row-label">Revenu principal — Ali</div><input class="budget-input" type="number" placeholder="0" data-key="rev_ali_prevu" oninput="updateAll()"><input class="budget-input" type="number" placeholder="0" data-key="rev_ali_reel" oninput="updateAll()"></div>
+      <div class="budget-row"><div class="budget-row-label">Revenu principal — Megane</div><input class="budget-input" type="number" placeholder="0" data-key="rev_megane_prevu" oninput="updateAll()"><input class="budget-input" type="number" placeholder="0" data-key="rev_megane_reel" oninput="updateAll()"></div>
+      <div style="padding:6px 24px 2px;font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--text2);opacity:.6;background:var(--bg3)">Revenus exceptionnels</div>
+      <div class="budget-row"><div class="budget-row-label">Entrée d'argent exceptionnelle</div><input class="budget-input" type="number" placeholder="0" data-key="rev_excep_prevu" oninput="updateAll()"><input class="budget-input" type="number" placeholder="0" data-key="rev_excep_reel" oninput="updateAll()"></div>
+    </div>
+
+    <!-- CHARGES FIXES -->
+    <div class="budget-block">
+      <div class="budget-block-header">
+        <span class="budget-block-title">📌 Charges fixes</span>
+        <span class="budget-block-total" id="total-fixes">0 €</span>
+      </div>
+      <div class="budget-row" style="grid-template-columns:1fr 160px 160px"><div></div><div class="col-header">Prévu</div><div class="col-header">Réel</div></div>
+      <div style="padding:6px 24px 2px;font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--text2);opacity:.6;background:var(--bg3)">Logement</div>
+      <div class="budget-row"><div class="budget-row-label">Loyer</div><input class="budget-input" type="number" placeholder="0" data-key="loyer_prevu" oninput="updateAll()"><input class="budget-input" type="number" placeholder="0" data-key="loyer_reel" oninput="updateAll()"></div>
+      <div style="padding:6px 24px 2px;font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--text2);opacity:.6;background:var(--bg3)">Crédits & dettes</div>
+      <div class="budget-row"><div class="budget-row-label">Crédit de surendettement</div><input class="budget-input" type="number" placeholder="0" data-key="credit_prevu" oninput="updateAll()"><input class="budget-input" type="number" placeholder="0" data-key="credit_reel" oninput="updateAll()"></div>
+      <div style="padding:6px 24px 2px;font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--text2);opacity:.6;background:var(--bg3)">Transport</div>
+      <div class="budget-row"><div class="budget-row-label">Assurance voiture</div><input class="budget-input" type="number" placeholder="0" data-key="assauto_prevu" oninput="updateAll()"><input class="budget-input" type="number" placeholder="0" data-key="assauto_reel" oninput="updateAll()"></div>
+      <div class="budget-row"><div class="budget-row-label">Carburant / Gasoil</div><input class="budget-input" type="number" placeholder="0" data-key="gasoil_prevu" oninput="updateAll()"><input class="budget-input" type="number" placeholder="0" data-key="gasoil_reel" oninput="updateAll()"></div>
+      <div style="padding:6px 24px 2px;font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--text2);opacity:.6;background:var(--bg3)">Énergie & services</div>
+      <div class="budget-row"><div class="budget-row-label">Électricité</div><input class="budget-input" type="number" placeholder="0" data-key="elec_prevu" oninput="updateAll()"><input class="budget-input" type="number" placeholder="0" data-key="elec_reel" oninput="updateAll()"></div>
+      <div class="budget-row"><div class="budget-row-label">Eau</div><input class="budget-input" type="number" placeholder="0" data-key="eau_prevu" oninput="updateAll()"><input class="budget-input" type="number" placeholder="0" data-key="eau_reel" oninput="updateAll()"></div>
+      <div style="padding:6px 24px 2px;font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--text2);opacity:.6;background:var(--bg3)">Santé</div>
+      <div class="budget-row"><div class="budget-row-label">Psy</div><input class="budget-input" type="number" placeholder="0" data-key="psy_prevu" oninput="updateAll()"><input class="budget-input" type="number" placeholder="0" data-key="psy_reel" oninput="updateAll()"></div>
+      <div class="budget-row"><div class="budget-row-label">Diététicienne</div><input class="budget-input" type="number" placeholder="0" data-key="diete_prevu" oninput="updateAll()"><input class="budget-input" type="number" placeholder="0" data-key="diete_reel" oninput="updateAll()"></div>
+      <div class="budget-row"><div class="budget-row-label">Médicaments pour Itou</div><input class="budget-input" type="number" placeholder="0" data-key="itou_prevu" oninput="updateAll()"><input class="budget-input" type="number" placeholder="0" data-key="itou_reel" oninput="updateAll()"></div>
+      <div class="budget-row"><div class="budget-row-label">Frais de santé divers</div><input class="budget-input" type="number" placeholder="0" data-key="sante_prevu" oninput="updateAll()"><input class="budget-input" type="number" placeholder="0" data-key="sante_reel" oninput="updateAll()"></div>
+      <div style="padding:6px 24px 2px;font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--text2);opacity:.6;background:var(--bg3)">Fiscalité</div>
+      <div class="budget-row"><div class="budget-row-label">Impôts</div><input class="budget-input" type="number" placeholder="0" data-key="impots_prevu" oninput="updateAll()"><input class="budget-input" type="number" placeholder="0" data-key="impots_reel" oninput="updateAll()"></div>
+      <div style="padding:6px 24px 2px;font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--text2);opacity:.6;background:var(--bg3)">Télécoms & abonnements</div>
+      <div class="budget-row"><div class="budget-row-label">Box internet</div><input class="budget-input" type="number" placeholder="0" data-key="box_prevu" oninput="updateAll()"><input class="budget-input" type="number" placeholder="0" data-key="box_reel" oninput="updateAll()"></div>
+      <div class="budget-row"><div class="budget-row-label">Téléphone — Ali</div><input class="budget-input" type="number" placeholder="0" data-key="tel_ali_prevu" oninput="updateAll()"><input class="budget-input" type="number" placeholder="0" data-key="tel_ali_reel" oninput="updateAll()"></div>
+      <div class="budget-row"><div class="budget-row-label">Téléphone — Megane</div><input class="budget-input" type="number" placeholder="0" data-key="tel_meg_prevu" oninput="updateAll()"><input class="budget-input" type="number" placeholder="0" data-key="tel_meg_reel" oninput="updateAll()"></div>
+      <div class="budget-row"><div class="budget-row-label">Streaming</div><input class="budget-input" type="number" placeholder="0" data-key="stream_prevu" oninput="updateAll()"><input class="budget-input" type="number" placeholder="0" data-key="stream_reel" oninput="updateAll()"></div>
+      <div class="budget-row"><div class="budget-row-label">PlayStation</div><input class="budget-input" type="number" placeholder="0" data-key="ps_prevu" oninput="updateAll()"><input class="budget-input" type="number" placeholder="0" data-key="ps_reel" oninput="updateAll()"></div>
+      <div class="budget-row"><div class="budget-row-label">Carte bancaire</div><input class="budget-input" type="number" placeholder="0" data-key="cb_prevu" oninput="updateAll()"><input class="budget-input" type="number" placeholder="0" data-key="cb_reel" oninput="updateAll()"></div>
+      <div style="padding:6px 24px 2px;font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--text2);opacity:.6;background:var(--bg3)">Imprévus fixes</div>
+      <div class="budget-row"><div class="budget-row-label">Imprévu fixe / Exceptionnel</div><input class="budget-input" type="number" placeholder="0" data-key="impfix_prevu" oninput="updateAll()"><input class="budget-input" type="number" placeholder="0" data-key="impfix_reel" oninput="updateAll()"></div>
+    </div>
+
+    <!-- DEPENSES VARIABLES -->
+    <div class="budget-block">
+      <div class="budget-block-header">
+        <span class="budget-block-title">🛒 Dépenses variables</span>
+        <span class="budget-block-total" id="total-variables">0 €</span>
+      </div>
+      <div class="budget-row" style="grid-template-columns:1fr 160px 160px"><div></div><div class="col-header">Prévu</div><div class="col-header">Réel</div></div>
+      <div style="padding:6px 24px 2px;font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--text2);opacity:.6;background:var(--bg3)">Alimentation</div>
+      <div class="budget-row"><div class="budget-row-label">Courses</div><input class="budget-input" type="number" placeholder="0" data-key="courses_prevu" oninput="updateAll()"><input class="budget-input" type="number" placeholder="0" data-key="courses_reel" oninput="updateAll()"></div>
+      <div style="padding:6px 24px 2px;font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--text2);opacity:.6;background:var(--bg3)">Consommation personnelle</div>
+      <div class="budget-row"><div class="budget-row-label">Tabac</div><input class="budget-input" type="number" placeholder="0" data-key="tabac_prevu" oninput="updateAll()"><input class="budget-input" type="number" placeholder="0" data-key="tabac_reel" oninput="updateAll()"></div>
+      <div style="padding:6px 24px 2px;font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--text2);opacity:.6;background:var
+        (--bg3)">Bien-être & sport</div>
+      <div class="budget-row"><div class="budget-row-label">Salle de sport</div><input class="budget-input" type="number" placeholder="0" data-key="sport_prevu" oninput="updateAll()"><input class="budget-input" type="number" placeholder="0" data-key="sport_reel" oninput="updateAll()"></div>
+      <div class="budget-row"><div class="budget-row-label">Ongles — Megane</div><input class="budget-input" type="number" placeholder="0" data-key="ongles_prevu" oninput="updateAll()"><input class="budget-input" type="number" placeholder="0" data-key="ongles_reel" oninput="updateAll()"></div>
+      <div style="padding:6px 24px 2px;font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--text2);opacity:.6;background:var(--bg3)">Vie sociale</div>
+      <div class="budget-row"><div class="budget-row-label">Cadeaux</div><input class="budget-input" type="number" placeholder="0" data-key="cadeaux_prevu" oninput="updateAll()"><input class="budget-input" type="number" placeholder="0" data-key="cadeaux_reel" oninput="updateAll()"></div>
+      <div style="padding:6px 24px 2px;font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--text2);opacity:.6;background:var(--bg3)">Imprévus variables</div>
+      <div class="budget-row"><div class="budget-row-label">Imprévu variable / Exceptionnel</div><input class="budget-input" type="number" placeholder="0" data-key="impvar_prevu" oninput="updateAll()"><input class="budget-input" type="number" placeholder="0" data-key="impvar_reel" oninput="updateAll()"></div>
+    </div>
+  </div>
+
+  <!-- HISTORIQUE -->
+  <div id="section-historique" class="section">
+    <h2 style="margin-bottom:24px;font-size:18px;font-weight:600">Historique</h2>
+    <div class="history-grid" id="history-grid"></div>
+  </div>
+
+  <!-- PARAMETRES -->
+  <div id="section-parametres" class="section">
+    <h2 style="margin-bottom:24px;font-size:18px;font-weight:600">Paramètres</h2>
+    <div class="param-block">
+      <div class="param-title">Sauvegarde & transfert</div>
+      <div class="param-row">
+        <div>
+          <div class="param-label">Exporter mes données</div>
+          <div style="font-size:12px;color:var(--text2);margin-top:4px">Télécharge un fichier JSON avec tous tes mois</div>
+        </div>
+        <button class="btn btn-gold" onclick="exportData()">Exporter</button>
+      </div>
+      <div class="param-row">
+        <div>
+          <div class="param-label">Importer une sauvegarde</div>
+          <div style="font-size:12px;color:var(--text2);margin-top:4px">Charge un fichier JSON exporté précédemment</div>
+        </div>
+        abel class="btn btn-outline" style="cursor:pointer">Importer<input type="file" accept=".json" style="display:none" onchange="importData(event)"></label>
+      </div>
+    </div>
+    <div class="param-block">
+      <div class="param-title">Données</div>
+      <div class="param-row">
+        <div>
+          <div class="param-label">Réinitialiser le mois en cours</div>
+          <div style="font-size:12px;color:var(--text2);margin-top:4px">Efface toutes les valeurs du mois sélectionné</div>
+        </div>
+        <button class="btn btn-danger" onclick="resetMonth()">Réinitialiser</button>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<!-- SAVE BAR -->
+<div class="save-bar">
+  <button class="btn btn-outline" onclick="showSection('parametres')">⚙️</button>
+  <button class="btn btn-gold" onclick="saveData()">💾 Sauvegarder</button>
+</div>
+
+<script>
+const KEYS=['rev_ali_prevu','rev_ali_reel','rev_megane_prevu','rev_megane_reel','rev_excep_prevu','rev_excep_reel','loyer_prevu','loyer_reel','credit_prevu','credit_reel','assauto_prevu','assauto_reel','gasoil_prevu','gasoil_reel','elec_prevu','elec_reel','eau_prevu','eau_reel','psy_prevu','psy_reel','diete_prevu','diete_reel','itou_prevu','itou_reel','sante_prevu','sante_reel','impots_prevu','impots_reel','box_prevu','box_reel','tel_ali_prevu','tel_ali_reel','tel_meg_prevu','tel_meg_reel','stream_prevu','stream_reel','ps_prevu','ps_reel','cb_prevu','cb_reel','impfix_prevu','impfix_reel','courses_prevu','courses_reel','tabac_prevu','tabac_reel','sport_prevu','sport_reel','ongles_prevu','ongles_reel','cadeaux_prevu','cadeaux_reel','impvar_prevu','impvar_reel'];
+
+function getMonth(){return document.getElementById('monthSelect').value}
+function storageKey(m){return'budget_'+m}
+
+function loadMonth(){
+  const m=getMonth();
+  const data=JSON.parse(localStorage.getItem(storageKey(m))||'{}');
+  document.querySelectorAll('[data-key]').forEach(el=>{
+    el.value=data[el.dataset.key]||'';
+  });
+  updateAll();
+}
+
+function saveData(){
+  const m=getMonth();
+  const data={};
+  document.querySelectorAll('[data-key]').forEach(el=>{data[el.dataset.key]=el.value});
+  localStorage.setItem(storageKey(m),JSON.stringify(data));
+  showToast('✅ Sauvegardé pour '+m);
+  buildHistory();
+}
+
+function getVal(key){
+  const el=document.querySelector('[data-key="'+key+'"]');
+  return el?parseFloat(el.value)||0:0;
+}
+
+function fmt(n){return n.toLocaleString('fr-FR',{minimumFractionDigits:0,maximumFractionDigits:0})+' €'}
+
+function updateAll(){
+  const revPrevu=getVal('rev_ali_prevu')+getVal('rev_megane_prevu')+getVal('rev_excep_prevu');
+  const revReel=getVal('rev_ali_reel')+getVal('rev_megane_reel')+getVal('rev_excep_reel');
+  const fixKeys=['loyer','credit','assauto','gasoil','elec','eau','psy','diete','itou','sante','impots','box','tel_ali','tel_meg','stream','ps','cb','impfix'];
+  let fixPrevu=0,fixReel=0;
+  fixKeys.forEach(k=>{fixPrevu+=getVal(k+'_prevu');fixReel+=getVal(k+'_reel')});
+  const varKeys=['courses','tabac','sport','ongles','cadeaux','impvar'];
+  let varPrevu=0,varReel=0;
+  varKeys.forEach(k=>{varPrevu+=getVal(k+'_prevu');varReel+=getVal(k+'_reel')});
+  const totalDepReel=fixReel+varReel;
+  const solde=revReel-totalDepReel;
+  const tauxEp=revReel>0?Math.round((solde/revReel)*100):0;
+  const tauxCh=revReel>0?Math.round((totalDepReel/revReel)*100):0;
+
+  document.getElementById('total-revenus').textContent=fmt(revReel);
+  document.getElementById('total-fixes').textContent=fmt(fixReel);
+  document.getElementById('total-variables').textContent=fmt(varReel);
+  document.getElementById('kpi-revenus').textContent=fmt(revReel);
+  document.getElementById('kpi-fixes').textContent=fmt(fixReel);
+  document.getElementById('kpi-fixes-pct').textContent=(revReel>0?Math.round(fixReel/revReel*100):0)+'% des revenus';
+  document.getElementById('kpi-variables').textContent=fmt(varReel);
+  document.getElementById('kpi-variables-pct').textContent=(revReel>0?Math.round(varReel/revReel*100):0)+'% des revenus';
+
+  const soldeEl=document.getElementById('kpi-solde');
+  soldeEl.textContent=fmt(solde);
+  soldeEl.className='kpi-value '+(solde>0?'positive':solde<0?'negative':'');
+  document.getElementById('kpi-solde-status').textContent=solde>0?'Bilan positif':solde<0?'Attention déficit':'Équilibré';
+
+  const epEl=document.getElementById('kpi-epargne');
+  epEl.textContent=tauxEp+'%';
+  epEl.className='kpi-value '+(tauxEp>=20?'positive':tauxEp>=10?'warning':'negative');
+
+  const tauxEl=document.getElementById('kpi-taux');
+  tauxEl.textContent=tauxCh+'%';
+  tauxEl.className='kpi-value '+(tauxCh<=70?'positive':tauxCh<=90?'warning':'negative');
+
+  document.getElementById('dash-rev').textContent=fmt(revReel);
+  document.getElementById('dash-dep').textContent=fmt(totalDepReel);
+  const s2=document.getElementById('dash-solde2');
+  s2.textContent=fmt(solde);
+  s2.style.color=solde>=0?'var(--green)':'var(--red)';
+}
+
+function showSection(id){
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('section-'+id).classList.add('active');
+  const idx={dashboard:0,saisie:1,historique:2,parametres:3};
+  document.querySelectorAll('.nav-btn')[idx[id]+1]?.classList.add('active');
+  if(id==='historique')buildHistory();
+}
+
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),3000);
+}
+
+function exportData(){
+  const all={};
+  for(let i=0;iocalStorage.length;i++){
+    const k=localStorage.key(i);
+    if(k.startsWith('budget_'))all[k]=JSON.parse(localStorage.getItem(k));
+  }
+  const a=document.createElement('a');
+  a.href='data:application/json,'+encodeURIComponent(JSON.stringify(all,null,2));
+  a.download='budget-ali-megane.json';a.click();
+  showToast('✅ Export téléchargé');
+}
+
+function importData(e){
+  const file=e.target.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    if(!confirm('Importer cette sauvegarde ? Les données existantes seront écrasées.'))return;
+    const data=JSON.parse(ev.target.result);
+    Object.keys(data).forEach(k=>localStorage.setItem(k,JSON.stringify(data[k])));
+    loadMonth();buildHistory();showToast('✅ Import réussi');
+  };reader.readAsText(file);
+}
+
+function resetMonth(){
+  if(!confirm('Réinitialiser le mois '+getMonth()+' ?'))return;
+  localStorage.removeItem(storageKey(getMonth()));
+  loadMonth();showToast('🗑️ Mois réinitialisé');
+}
+
+function buildHistory(){
+  const grid=document.getElementById('history-grid');
+  const months=[];
+  for(let i=0;iocalStorage.length;i++){
+    const k=localStorage.key(i);
+    if(k.startsWith('budget_'))months.push(k.replace('budget_',''));
+  }
+  if(months.length===0){grid.innerHTML='<p style="color:var(--text2)">Aucun mois sauvegardé.</p>';return;}
+  months.sort((a,b)=>b.localeCompare(a));
+  grid.innerHTML=months.map(m=>{
+    const d=JSON.parse(localStorage.getItem('budget_'+m)||'{}');
+    const rev=(parseFloat(d.rev_ali_reel)||0)+(parseFloat(d.rev_megane_reel)||0)+(parseFloat(d.rev_excep_reel)||0);
+    const fix=['loyer','credit','assauto','gasoil','elec','eau','psy','diete','itou','sante','impots','box','tel_ali','tel_meg','stream','ps','cb','impfix'].reduce((s,k)=>s+(parseFloat(d[k+'_reel'])||0),0);
+    const vari=['courses','tabac','sport','ongles','cadeaux','impvar'].reduce((s,k)=>s+(parseFloat(d[k+'_reel'])||0),0);
+    const solde=rev-fix-vari;
+    const [y,mo]=m.split('-');
+    const label=new Date(y,mo-1).toLocaleDateString('fr-FR',{month:'long',year:'numeric'});
+    return`<div class="history-card" onclick="document.getElementById('monthSelect').value='${m}';loadMonth();showSection('saisie')">
+      <div class="history-month">${label}</div>
+      <div class="history-stat"><span>Revenus</span><span style="color:var(--green)">${fmt(rev)}</span></div>
+      <div class="history-stat"><span>Dépenses</span>
+      <span style="color:var(--red)">${fmt(fix+vari)}</span></div>
+      <div class="history-stat"><span>Solde</span><span style="color:${solde>=0?'var(--green)':'var(--red)'}">${fmt(solde)}</span></div>
+    </div>`;
+  }).join('');
+}
+
+window.onload=()=>{loadMonth();buildHistory()};
+</script>
+</body>
+</html>
